@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Query, APIRouter
+from fastapi import Query, APIRouter, HTTPException
 from app.schemas import Article
 
 router = APIRouter()
@@ -10,12 +10,15 @@ def submit_article(article: Article):
     articles.append({"title": article.title, "content": article.content, "tags": article.tags})
     return {"ok": "submitted"}
 
-@router.get('/')
-def retrieve_articles(tags: list[str] = Query(None)):
-    print(articles)
+@router.get('/{article_id}')
+def retrieve_articles(article_id: int, tags: list[str] = Query(None)):
+    if article_id < 0 or article_id >= len(articles):
+        raise HTTPException(status_code=404, detail="Article not found")
+    
+    article = articles[article_id]
+
     if tags:
-        for article in articles:
-            for tag in tags:
-                if tag in article["tags"]:
-                    return article
-    return articles
+        if not any(tag in article.get("tags", []) for tag in tags):
+            raise HTTPException(status_code=404, detail="Article found, but tags do not match")
+            
+    return article
